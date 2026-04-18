@@ -3,72 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pri Massas Artesanais - Cardápio</title>
+    <title>Pri Massas - Gestão</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #fdf8f5; color: #333; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { color: #8b0000; text-align: center; }
-        input, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
-        button { background-color: #2e8b57; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background-color: #246b43; }
-        .massa-item { background: #fff3e0; margin: 10px 0; padding: 10px; border-left: 5px solid #ff8c00; }
+        :root { --vinho: #722F37; --oliva: #556B2F; --creme: #fdf5e6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--creme); display: flex; justify-content: center; padding: 20px; }
+        .app-card { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { color: var(--vinho); text-align: center; margin-bottom: 25px; }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        .btn-salvar { width: 100%; padding: 15px; background: var(--oliva); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        .lista-itens { margin-top: 30px; }
+        .item { background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .btn-acao { border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        .btn-add { background: #e8f5e9; color: var(--oliva); border: 1px solid var(--oliva); }
+        .btn-del { background: #ffebee; color: #c62828; border: 1px solid #c62828; }
+        
+        .info b { color: #333; font-size: 1.1rem; }
+        .info span { color: #666; font-size: 0.85rem; display: block; margin-top: 3px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🍝 Pri Massas Artesanais</h1>
-        
-        <h3>Cadastrar Nova Massa</h3>
-        <input type="text" id="nomeMassa" placeholder="Nome da Massa (Ex: Nhoque ao Sugo)">
-        <input type="number" id="precoMassa" placeholder="Preço (Ex: 45.90)">
-        <button onclick="salvarMassa()">Adicionar ao Cardápio</button>
 
-        <h3>Cardápio Atual</h3>
-        <div id="listaMassas">
-            </div>
+<div class="app-card">
+    <h1>🍝 Gestão de Estoque</h1>
+    
+    <input type="text" id="nomeMassa" placeholder="Nome da Massa">
+    <div style="display: flex; gap: 10px;">
+        <input type="number" id="precoMassa" placeholder="Preço R$">
+        <input type="number" id="qtdMassa" placeholder="Qtd Inicial">
     </div>
+    <button class="btn-salvar" onclick="salvar()">Cadastrar Produto</button>
 
-    <script>
-        // Função para buscar as massas no nosso servidor (porta 3000)
-        async function carregarCardapio() {
-            const resposta = await fetch('http://localhost:3000/api/produtos');
-            const massas = await resposta.json();
-            
-            const divLista = document.getElementById('listaMassas');
-            divLista.innerHTML = ''; // Limpa a lista antes de mostrar
+    <div class="lista-itens" id="lista"></div>
+</div>
 
-            massas.forEach(massa => {
-                divLista.innerHTML += `
-                    <div class="massa-item">
-                        <strong>${massa.nome}</strong> - R$ ${massa.preco.toFixed(2)}
+<script>
+    // USANDO IP DIRETO PARA EVITAR BLOQUEIO DO NAVEGADOR
+    const API = "http://127.0.0.1:3000/api/produtos";
+
+    async function atualizar() {
+        try {
+            const res = await fetch(API);
+            const dados = await res.json();
+            const listaDiv = document.getElementById('lista');
+            listaDiv.innerHTML = '';
+
+            dados.forEach(p => {
+                listaDiv.innerHTML += `
+                    <div class="item">
+                        <div class="info">
+                            <b>${p.nome}</b>
+                            <span>Estoque: ${p.quantidade || 0} | R$ ${p.preco.toFixed(2)}</span>
+                        </div>
+                        <div>
+                            <button class="btn-acao btn-add" onclick="somarEstoque('${p._id}')">+ Add</button>
+                            <button class="btn-acao btn-del" onclick="apagar('${p._id}')">🗑️</button>
+                        </div>
                     </div>
                 `;
             });
+        } catch (e) {
+            console.log("Erro de conexão. Tentando alternativa...");
         }
+    }
 
-        // Função para salvar uma nova massa no banco de dados
-        async function salvarMassa() {
-            const nome = document.getElementById('nomeMassa').value;
-            const preco = document.getElementById('precoMassa').value;
+    async function salvar() {
+        const nome = document.getElementById('nomeMassa').value;
+        const preco = document.getElementById('precoMassa').value;
+        const quantidade = document.getElementById('qtdMassa').value;
 
-            if(!nome || !preco) {
-                alert("Por favor, preencha o nome e o preço da massa!");
-                return;
-            }
+        if(!nome || !preco) return alert("Preencha os campos!");
 
-            await fetch('http://localhost:3000/api/produtos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: nome, preco: Number(preco) })
+        await fetch(API, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nome, preco: Number(preco), quantidade: Number(quantidade) })
+        });
+        
+        limpar();
+        atualizar();
+    }
+
+    async function apagar(id) {
+        if(confirm("Deseja apagar este produto?")) {
+            await fetch(`${API}/${id}`, { method: 'DELETE' });
+            atualizar();
+        }
+    }
+
+    async function somarEstoque(id) {
+        const valor = prompt("Quantas unidades deseja ADICIONAR?");
+        if(valor) {
+            await fetch(`${API}/${id}/adicionar`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ quantidadeAdicional: Number(valor) })
             });
-
-            document.getElementById('nomeMassa').value = '';
-            document.getElementById('precoMassa').value = '';
-            carregarCardapio(); // Atualiza a lista na tela
+            atualizar();
         }
+    }
 
-        // Carrega o cardápio assim que a página abre
-        carregarCardapio();
-    </script>
+    function limpar() {
+        document.getElementById('nomeMassa').value = '';
+        document.getElementById('precoMassa').value = '';
+        document.getElementById('qtdMassa').value = '';
+    }
+
+    atualizar();
+</script>
 </body>
 </html>

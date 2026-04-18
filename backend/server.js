@@ -4,50 +4,48 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-
-// Libera a comunicação
-app.use(cors());
-// Permite entender JSON
 app.use(express.json());
+app.use(cors()); // Permite que o HTML fale com o servidor sem bloqueios
 
-// 1. Conexão com o Banco de Dados
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Conectado ao banco de dados da Pri Massas!'))
-  .catch((err) => console.error('❌ Erro ao conectar ao banco:', err));
+  .then(() => console.log("✅ BANCO CONECTADO"))
+  .catch(err => console.error("❌ ERRO BANCO:", err));
 
-// 2. Molde do Produto
-const ProdutoSchema = new mongoose.Schema({
-  nome: { type: String, required: true },
-  preco: { type: Number, required: true }
+const Produto = mongoose.model('Produto', {
+  nome: String,
+  preco: Number,
+  quantidade: { type: Number, default: 0 }
 });
 
-const Produto = mongoose.model('Produto', ProdutoSchema);
-
-// 3. Rotas de Comunicação
+// LISTAR
 app.get('/api/produtos', async (req, res) => {
-  try {
-    const produtos = await Produto.find();
-    res.json(produtos);
-  } catch (erro) {
-    res.status(500).json({ erro: 'Erro ao buscar os produtos.' });
-  }
+  const produtos = await Produto.find();
+  res.json(produtos);
 });
 
+// CADASTRAR
 app.post('/api/produtos', async (req, res) => {
-  try {
-    const novoProduto = new Produto({
-      nome: req.body.nome,
-      preco: req.body.preco
-    });
-    await novoProduto.save(); 
-    res.status(201).json(novoProduto);
-  } catch (erro) {
-    res.status(500).json({ erro: 'Falha ao salvar no banco de dados.' });
+  const novo = new Produto(req.body);
+  await novo.save();
+  res.json({ mensagem: "Sucesso" });
+});
+
+// APAGAR
+app.delete('/api/produtos/:id', async (req, res) => {
+  await Produto.findByIdAndDelete(req.params.id);
+  res.json({ mensagem: "Removido" });
+});
+
+// ADICIONAR ESTOQUE
+app.patch('/api/produtos/:id/adicionar', async (req, res) => {
+  const { quantidadeAdicional } = req.body;
+  const produto = await Produto.findById(req.params.id);
+  if (produto) {
+    produto.quantidade = (produto.quantidade || 0) + Number(quantidadeAdicional);
+    await produto.save();
+    res.json(produto);
   }
 });
 
-// 4. Ligar o Motor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor da Pri Massas rodando na porta ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Rodando na porta ${PORT}`));

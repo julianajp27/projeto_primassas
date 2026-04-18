@@ -1,14 +1,55 @@
-/* Estilos básicos - Go Live Server */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 20px;
-    line-height: 1.6;
-    background-color: #f5f5f5;
+/* style/style.css */
+:root {
+    --vinho: #8b0000;
+    --laranja: #ff8c00;
+    --fundo: #fdf8f5;
+    --verde: #2e8b57;
 }
 
-h1 {
-    color: #333;
-    border-bottom: 2px solid #007acc;
-    padding-bottom: 10px;
+body { 
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    background-color: var(--fundo); 
+    margin: 0; padding: 20px; display: flex; justify-content: center;
+}
+
+.container { 
+    width: 100%; max-width: 500px; 
+    background: white; padding: 30px; 
+    border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+}
+
+h1 { color: var(--vinho); text-align: center; margin-bottom: 30px; }
+
+/* Formulário Empilhado (Melhor para Celular) */
+.form-cadastro { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+
+input { 
+    padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 16px; 
+    transition: border-color 0.3s;
+}
+
+input:focus { border-color: var(--laranja); outline: none; }
+
+button { 
+    padding: 15px; background-color: var(--verde); color: white; 
+    border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+    font-size: 16px; transition: transform 0.2s;
+}
+
+button:active { transform: scale(0.98); }
+
+/* Itens do Cardápio */
+.massa-item { 
+    background: #fff; margin: 10px 0; padding: 15px; 
+    border-radius: 10px; border: 1px solid #eee;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.02);
+}
+
+.massa-item strong { color: var(--vinho); }
+
+/* Responsividade */
+@media (max-width: 480px) {
+    .container { padding: 20px; }
+    h1 { font-size: 1.5rem; }
 }
