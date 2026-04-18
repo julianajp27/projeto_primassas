@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pri Massas Artesanais - Cardápio</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #fdf8f5; color: #333; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #8b0000; text-align: center; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        button { background-color: #2e8b57; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #246b43; }
+        .massa-item { background: #fff3e0; margin: 10px 0; padding: 10px; border-left: 5px solid #ff8c00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍝 Pri Massas Artesanais</h1>
+        
+        <h3>Cadastrar Nova Massa</h3>
+        <input type="text" id="nomeMassa" placeholder="Nome da Massa (Ex: Nhoque ao Sugo)">
+        <input type="number" id="precoMassa" placeholder="Preço (Ex: 45.90)">
+        <button onclick="salvarMassa()">Adicionar ao Cardápio</button>
+
+        <h3>Cardápio Atual</h3>
+        <div id="listaMassas">
+            </div>
+    </div>
+
+    <script>
+        // Função para buscar as massas no nosso servidor (porta 3000)
+        async function carregarCardapio() {
+            const resposta = await fetch('http://localhost:3000/api/produtos');
+            const massas = await resposta.json();
+            
+            const divLista = document.getElementById('listaMassas');
+            divLista.innerHTML = ''; // Limpa a lista antes de mostrar
+
+            massas.forEach(massa => {
+                divLista.innerHTML += `
+                    <div class="massa-item">
+                        <strong>${massa.nome}</strong> - R$ ${massa.preco.toFixed(2)}
+                    </div>
+                `;
+            });
+        }
+
+        // Função para salvar uma nova massa no banco de dados
+        async function salvarMassa() {
+            const nome = document.getElementById('nomeMassa').value;
+            const preco = document.getElementById('precoMassa').value;
+
+            if(!nome || !preco) {
+                alert("Por favor, preencha o nome e o preço da massa!");
+                return;
+            }
+
+            await fetch('http://localhost:3000/api/produtos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: nome, preco: Number(preco) })
+            });
+
+            document.getElementById('nomeMassa').value = '';
+            document.getElementById('precoMassa').value = '';
+            carregarCardapio(); // Atualiza a lista na tela
+        }
+
+        // Carrega o cardápio assim que a página abre
+        carregarCardapio();
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Ignora as pastas de dependências
+**/node_modules
+backend/node_modules
+
+# Ignora o arquivo de senhas onde quer que ele esteja
+.env
+backend/.env
+
+# Outros arquivos desnecessários
+.DS_Store
