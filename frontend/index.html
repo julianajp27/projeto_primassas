@@ -12,6 +12,7 @@
         
         input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
         .btn-salvar { width: 100%; padding: 15px; background: var(--oliva); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-salvar:disabled { background: #ccc; cursor: not-allowed; }
         
         .lista-itens { margin-top: 30px; }
         .item { background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
@@ -33,13 +34,14 @@
         <input type="number" id="precoMassa" placeholder="Preço R$">
         <input type="number" id="qtdMassa" placeholder="Qtd Inicial">
     </div>
-    <button class="btn-salvar" onclick="salvar()">Cadastrar Produto</button>
+    <button class="btn-salvar" id="btnSalvar" onclick="salvar()">Cadastrar Produto</button>
 
-    <div class="lista-itens" id="lista"></div>
+    <div class="lista-itens" id="lista">
+        <p style="text-align: center; color: #666;">Carregando estoque...</p>
+    </div>
 </div>
 
 <script>
-    // USANDO IP DIRETO PARA EVITAR BLOQUEIO DO NAVEGADOR
     const API = "https://projeto-primassas.onrender.com/api/produtos";
 
     async function atualizar() {
@@ -48,6 +50,11 @@
             const dados = await res.json();
             const listaDiv = document.getElementById('lista');
             listaDiv.innerHTML = '';
+
+            if (dados.length === 0) {
+                listaDiv.innerHTML = '<p style="text-align: center; color: #666;">Nenhum produto cadastrado.</p>';
+                return;
+            }
 
             dados.forEach(p => {
                 listaDiv.innerHTML += `
@@ -64,7 +71,7 @@
                 `;
             });
         } catch (e) {
-            console.log("Erro de conexão. Tentando alternativa...");
+            document.getElementById('lista').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar. O servidor pode estar iniciando, aguarde e atualize a página.</p>';
         }
     }
 
@@ -72,35 +79,59 @@
         const nome = document.getElementById('nomeMassa').value;
         const preco = document.getElementById('precoMassa').value;
         const quantidade = document.getElementById('qtdMassa').value;
+        const btn = document.getElementById('btnSalvar');
 
-        if(!nome || !preco) return alert("Preencha os campos!");
+        if(!nome || !preco) return alert("Preencha o nome e o preço!");
 
-        await fetch(API, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nome, preco: Number(preco), quantidade: Number(quantidade) })
-        });
-        
-        limpar();
-        atualizar();
+        // Trava o botão para não dar cliques duplos
+        btn.innerText = "Salvando...";
+        btn.disabled = true;
+
+        try {
+            await fetch(API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nome, preco: Number(preco), quantidade: Number(quantidade) })
+            });
+            limpar();
+            await atualizar();
+        } catch (e) {
+            alert("Erro ao salvar. Verifique a conexão.");
+        }
+
+        // Destrava o botão
+        btn.innerText = "Cadastrar Produto";
+        btn.disabled = false;
     }
 
     async function apagar(id) {
-        if(confirm("Deseja apagar este produto?")) {
-            await fetch(`${API}/${id}`, { method: 'DELETE' });
-            atualizar();
+        if(confirm("Deseja apagar este produto da lista?")) {
+            try {
+                const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+                if(res.ok) {
+                    await atualizar();
+                } else {
+                    alert("Erro: O servidor não conseguiu apagar.");
+                }
+            } catch (e) {
+                alert("Erro de comunicação com o servidor.");
+            }
         }
     }
 
     async function somarEstoque(id) {
         const valor = prompt("Quantas unidades deseja ADICIONAR?");
-        if(valor) {
-            await fetch(`${API}/${id}/adicionar`, {
-                method: 'PATCH',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ quantidadeAdicional: Number(valor) })
-            });
-            atualizar();
+        if(valor && !isNaN(valor)) {
+            try {
+                await fetch(`${API}/${id}/adicionar`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ quantidadeAdicional: Number(valor) })
+                });
+                await atualizar();
+            } catch (e) {
+                alert("Erro ao adicionar estoque.");
+            }
         }
     }
 
