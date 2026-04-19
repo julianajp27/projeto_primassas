@@ -3,152 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pri Massas - Gestão</title>
+    <title>Pri Massas Artesanais - Cardápio</title>
     <style>
-        :root { --vinho: #722F37; --oliva: #556B2F; --creme: #fdf5e6; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--creme); display: flex; justify-content: center; padding: 20px; }
-        .app-card { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h1 { color: var(--vinho); text-align: center; margin-bottom: 25px; }
-        
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        .btn-salvar { width: 100%; padding: 15px; background: var(--oliva); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-salvar:disabled { background: #ccc; cursor: not-allowed; }
-        
-        .lista-itens { margin-top: 30px; }
-        .item { background: #fff; margin: 12px 0; padding: 15px; border-radius: 15px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .btn-acao { border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-left: 5px; }
-        .btn-add { background: #e8f5e9; color: var(--oliva); border: 1px solid var(--oliva); }
-        .btn-del { background: #ffebee; color: #c62828; border: 1px solid #c62828; }
-        
-        .info b { color: #333; font-size: 1.1rem; }
-        .info span { color: #666; font-size: 0.85rem; display: block; margin-top: 3px; }
+        body { font-family: Arial, sans-serif; background-color: #fdf8f5; color: #333; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #8b0000; text-align: center; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        button { background-color: #2e8b57; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #246b43; }
+        .massa-item { background: #fff3e0; margin: 10px 0; padding: 10px; border-left: 5px solid #ff8c00; display: flex; justify-content: space-between; align-items: center; }
+        .btn-apagar { background-color: #dc3545; padding: 5px 10px; font-size: 12px; width: auto; }
+        .btn-apagar:hover { background-color: #c82333; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>🍝 Pri Massas Artesanais</h1>
+        
+        <h3>Cadastrar Nova Massa</h3>
+        <input type="text" id="nomeMassa" placeholder="Nome da Massa (Ex: Nhoque ao Sugo)">
+        <input type="number" id="precoMassa" placeholder="Preço (Ex: 45.90)">
+        <button onclick="salvarMassa()">Adicionar ao Cardápio</button>
 
-<div class="app-card">
-    <h1>🍝 Gestão de Estoque</h1>
-    
-    <input type="text" id="nomeMassa" placeholder="Nome da Massa">
-    <div style="display: flex; gap: 10px;">
-        <input type="number" id="precoMassa" placeholder="Preço R$">
-        <input type="number" id="qtdMassa" placeholder="Qtd Inicial">
+        <h3>Cardápio Atual</h3>
+        <div id="listaMassas">
+            <p style="text-align: center; color: #666;">Carregando cardápio...</p>
+        </div>
     </div>
-    <button class="btn-salvar" id="btnSalvar" onclick="salvar()">Cadastrar Produto</button>
 
-    <div class="lista-itens" id="lista">
-        <p style="text-align: center; color: #666;">Carregando estoque...</p>
-    </div>
-</div>
+    <script>
+        // URL da API no Render (CORRIGIDA)
+        const API_URL = "https://projeto-primassas.onrender.com/api/produtos";
 
-<script>
-    const API = "https://projeto-primassas.onrender.com/api/produtos";
+        // Função para buscar as massas no servidor
+        async function carregarCardapio() {
+            try {
+                const resposta = await fetch(API_URL);
+                
+                if (!resposta.ok) {
+                    throw new Error(`Erro HTTP: ${resposta.status}`);
+                }
+                
+                const massas = await resposta.json();
+                
+                const divLista = document.getElementById('listaMassas');
+                
+                if (massas.length === 0) {
+                    divLista.innerHTML = '<p style="text-align: center; color: #666;">Nenhuma massa cadastrada ainda.</p>';
+                    return;
+                }
 
-    async function atualizar() {
-        try {
-            const res = await fetch(API);
-            const dados = await res.json();
-            const listaDiv = document.getElementById('lista');
+                divLista.innerHTML = ''; // Limpa a lista antes de mostrar
 
-            if (!dados.length) {
-                listaDiv.innerHTML = '<p style="text-align: center; color: #666;">Nenhum produto cadastrado.</p>';
+                massas.forEach(massa => {
+                    divLista.innerHTML += `
+                        <div class="massa-item">
+                            <div>
+                                <strong>${massa.nome}</strong> - R$ ${massa.preco.toFixed(2)}
+                                ${massa.quantidade ? `<br><small>Estoque: ${massa.quantidade}</small>` : ''}
+                            </div>
+                            <button class="btn-apagar" onclick="apagarMassa('${massa._id}')">🗑️ Apagar</button>
+                        </div>
+                    `;
+                });
+            } catch (erro) {
+                console.error("Erro ao carregar:", erro);
+                document.getElementById('listaMassas').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar cardápio. Verifique a conexão.</p>';
+            }
+        }
+
+        // Função para salvar uma nova massa no banco de dados
+        async function salvarMassa() {
+            const nome = document.getElementById('nomeMassa').value;
+            const preco = document.getElementById('precoMassa').value;
+
+            if(!nome || !preco) {
+                alert("Por favor, preencha o nome e o preço da massa!");
                 return;
             }
 
-            listaDiv.innerHTML = dados.map(p => `
-                <div class="item">
-                    <div class="info">
-                        <b>${p.nome}</b>
-                        <span>Estoque: ${p.quantidade || 0} | R$ ${p.preco.toFixed(2)}</span>
-                    </div>
-                    <div>
-                        <button class="btn-acao btn-add" data-id="${p._id}" data-action="add">+ Add</button>
-                        <button class="btn-acao btn-del" data-id="${p._id}" data-action="delete">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-        } catch (e) {
-            document.getElementById('lista').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar.</p>';
-        }
-    }
+            const btn = event.target;
+            const textoOriginal = btn.innerText;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
 
-    async function salvar() {
-        const nome = document.getElementById('nomeMassa').value;
-        const preco = document.getElementById('precoMassa').value;
-        const quantidade = document.getElementById('qtdMassa').value;
-        const btn = document.getElementById('btnSalvar');
-
-        if(!nome || !preco) return alert("Preencha o nome e o preço!");
-
-        // Trava o botão para não dar cliques duplos
-        btn.innerText = "Salvando...";
-        btn.disabled = true;
-
-        try {
-            await fetch(API, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nome, preco: Number(preco), quantidade: Number(quantidade) })
-            });
-            limpar();
-            await atualizar();
-        } catch (e) {
-            alert("Erro ao salvar. Verifique a conexão.");
-        }
-
-        // Destrava o botão
-        btn.innerText = "Cadastrar Produto";
-        btn.disabled = false;
-    }
-
-    async function apagar(id) {
-        if(confirm("Deseja apagar este produto da lista?")) {
             try {
-                const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
-                if(res.ok) {
-                    await atualizar();
-                } else {
-                    alert("Erro: O servidor não conseguiu apagar.");
-                }
-            } catch (e) {
-                alert("Erro de comunicação com o servidor.");
-            }
-        }
-    }
-
-    async function somarEstoque(id) {
-        const valor = prompt("Quantas unidades deseja ADICIONAR?");
-        if(valor && !isNaN(valor)) {
-            try {
-                await fetch(`${API}/${id}/adicionar`, {
-                    method: 'PATCH',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ quantidadeAdicional: Number(valor) })
+                const resposta = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        nome: nome, 
+                        preco: Number(preco),
+                        quantidade: 0 
+                    })
                 });
-                await atualizar();
-            } catch (e) {
-                alert("Erro ao adicionar estoque.");
+
+                if (!resposta.ok) {
+                    throw new Error(`Erro HTTP: ${resposta.status}`);
+                }
+
+                document.getElementById('nomeMassa').value = '';
+                document.getElementById('precoMassa').value = '';
+                await carregarCardapio();
+                alert("Massa cadastrada com sucesso!");
+                
+            } catch(erro) {
+                console.error("Erro ao salvar:", erro);
+                alert("Erro ao salvar: " + erro.message);
+            } finally {
+                btn.innerText = textoOriginal;
+                btn.disabled = false;
             }
         }
-    }
 
-    function limpar() {
-        document.getElementById('nomeMassa').value = '';
-        document.getElementById('precoMassa').value = '';
-        document.getElementById('qtdMassa').value = '';
-    }
+        // Função para APAGAR uma massa (é isso que você precisava!)
+        async function apagarMassa(id) {
+            if(!confirm("⚠️ Tem certeza que deseja apagar esta massa permanentemente?")) {
+                return;
+            }
+            
+            try {
+                const resposta = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (resposta.ok) {
+                    alert("✅ Massa apagada com sucesso!");
+                    await carregarCardapio(); // Recarrega a lista
+                } else if (resposta.status === 404) {
+                    alert("❌ Massa não encontrada!");
+                } else {
+                    const erro = await resposta.text();
+                    alert(`❌ Erro ao apagar: ${resposta.status} - ${erro}`);
+                }
+            } catch(erro) {
+                console.error("Erro na requisição:", erro);
+                alert("❌ Erro de conexão com o servidor. Verifique sua internet.");
+            }
+        }
 
-    atualizar();
-
-    document.getElementById('lista').addEventListener('click', event => {
-        const btn = event.target.closest('button');
-        if (!btn) return;
-
-        const id = btn.dataset.id;
-        const action = btn.dataset.action;
-        if (action === 'delete') apagar(id);
-        if (action === 'add') somarEstoque(id);
-    });
-</script>
+        // Carrega o cardápio assim que a página abre
+        carregarCardapio();
+    </script>
 </body>
 </html>

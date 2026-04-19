@@ -19,15 +19,25 @@ const Produto = mongoose.model('Produto', {
 
 // LISTAR
 app.get('/api/produtos', async (req, res) => {
-  const produtos = await Produto.find();
-  res.json(produtos);
+  try {
+    const produtos = await Produto.find();
+    res.json(produtos);
+  } catch (err) {
+    console.error("Erro ao listar:", err);
+    res.status(500).json({ mensagem: "Erro ao listar produtos", erro: err.message });
+  }
 });
 
 // CADASTRAR
 app.post('/api/produtos', async (req, res) => {
-  const novo = new Produto(req.body);
-  await novo.save();
-  res.json({ mensagem: "Sucesso" });
+  try {
+    const novo = new Produto(req.body);
+    await novo.save();
+    res.json({ mensagem: "Sucesso" });
+  } catch (err) {
+    console.error("Erro ao salvar:", err);
+    res.status(500).json({ mensagem: "Erro ao salvar produto", erro: err.message });
+  }
 });
 
 // APAGAR
@@ -44,12 +54,16 @@ app.delete('/api/produtos/:id', async (req, res) => {
 
 // ADICIONAR ESTOQUE
 app.patch('/api/produtos/:id/adicionar', async (req, res) => {
-  const { quantidadeAdicional } = req.body;
-  const produto = await Produto.findById(req.params.id);
-  if (produto) {
+  try {
+    const { quantidadeAdicional } = req.body;
+    const produto = await Produto.findById(req.params.id);
+    if (!produto) return res.status(404).json({ mensagem: "Produto não encontrado" });
     produto.quantidade = (produto.quantidade || 0) + Number(quantidadeAdicional);
     await produto.save();
     res.json(produto);
+  } catch (err) {
+    console.error("Erro ao adicionar estoque:", err);
+    res.status(500).json({ mensagem: "Erro ao adicionar estoque", erro: err.message });
   }
 });
 
