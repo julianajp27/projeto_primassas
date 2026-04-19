@@ -41,7 +41,6 @@ app.post('/api/produtos', async (req, res) => {
 });
 
 // APAGAR
-// APAGAR PRODUTO - VERSÃO CORRIGIDA
 app.delete('/api/produtos/:id', async (req, res) => {
   try {
     const { id } = req.params;
