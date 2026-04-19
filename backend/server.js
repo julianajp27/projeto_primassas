@@ -32,8 +32,14 @@ app.post('/api/produtos', async (req, res) => {
 
 // APAGAR
 app.delete('/api/produtos/:id', async (req, res) => {
-  await Produto.findByIdAndDelete(req.params.id);
-  res.json({ mensagem: "Removido" });
+  try {
+    const apagado = await Produto.findByIdAndDelete(req.params.id);
+    if (!apagado) return res.status(404).json({ mensagem: "Produto não encontrado" });
+    res.json({ mensagem: "Removido" });
+  } catch (err) {
+    console.error("Erro ao apagar:", err);
+    res.status(500).json({ mensagem: "Erro ao apagar produto" });
+  }
 });
 
 // ADICIONAR ESTOQUE
