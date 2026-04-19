@@ -41,14 +41,38 @@ app.post('/api/produtos', async (req, res) => {
 });
 
 // APAGAR
+// APAGAR PRODUTO - VERSÃO CORRIGIDA
 app.delete('/api/produtos/:id', async (req, res) => {
   try {
-    const apagado = await Produto.findByIdAndDelete(req.params.id);
-    if (!apagado) return res.status(404).json({ mensagem: "Produto não encontrado" });
-    res.json({ mensagem: "Removido" });
-  } catch (err) {
-    console.error("Erro ao apagar:", err);
-    res.status(500).json({ mensagem: "Erro ao apagar produto" });
+    const { id } = req.params;
+    
+    console.log("📌 Recebi requisição DELETE para ID:", id);
+    
+    // Verifica se o ID veio
+    if (!id) {
+      return res.status(400).json({ mensagem: "ID não fornecido" });
+    }
+    
+    // Tenta encontrar e deletar
+    const produtoApagado = await Produto.findByIdAndDelete(id);
+    
+    if (!produtoApagado) {
+      console.log("❌ Produto não encontrado:", id);
+      return res.status(404).json({ mensagem: "Produto não encontrado" });
+    }
+    
+    console.log("✅ Produto apagado:", produtoApagado.nome);
+    res.json({ 
+      mensagem: "Produto removido com sucesso!",
+      produto: produtoApagado 
+    });
+    
+  } catch (error) {
+    console.error("❌ Erro no DELETE:", error);
+    res.status(500).json({ 
+      mensagem: "Erro interno ao apagar produto",
+      erro: error.message 
+    });
   }
 });
 
