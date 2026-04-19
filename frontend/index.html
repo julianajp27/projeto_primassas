@@ -11,7 +11,9 @@
         input, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
         button { background-color: #2e8b57; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #246b43; }
-        .massa-item { background: #fff3e0; margin: 10px 0; padding: 10px; border-left: 5px solid #ff8c00; }
+        .massa-item { background: #fff3e0; margin: 10px 0; padding: 10px; border-left: 5px solid #ff8c00; display: flex; justify-content: space-between; align-items: center; }
+        .btn-apagar { background-color: #dc3545; padding: 5px 10px; font-size: 12px; width: auto; }
+        .btn-apagar:hover { background-color: #c82333; }
     </style>
 </head>
 <body>
@@ -25,25 +27,49 @@
 
         <h3>Cardápio Atual</h3>
         <div id="listaMassas">
-            </div>
+            <p style="text-align: center; color: #666;">Carregando cardápio...</p>
+        </div>
     </div>
 
     <script>
-        // Função para buscar as massas no nosso servidor (porta 3000)
-        async function carregarCardapio() {
-            const resposta = await fetch('http://localhost:3000/api/produtos');
-            const massas = await resposta.json();
-            
-            const divLista = document.getElementById('listaMassas');
-            divLista.innerHTML = ''; // Limpa a lista antes de mostrar
+        // URL da API no Render (CORRIGIDA)
+        const API_URL = "https://projeto-primassas.onrender.com/api/produtos";
 
-            massas.forEach(massa => {
-                divLista.innerHTML += `
-                    <div class="massa-item">
-                        <strong>${massa.nome}</strong> - R$ ${massa.preco.toFixed(2)}
-                    </div>
-                `;
-            });
+        // Função para buscar as massas no servidor
+        async function carregarCardapio() {
+            try {
+                const resposta = await fetch(API_URL);
+                
+                if (!resposta.ok) {
+                    throw new Error(`Erro HTTP: ${resposta.status}`);
+                }
+                
+                const massas = await resposta.json();
+                
+                const divLista = document.getElementById('listaMassas');
+                
+                if (massas.length === 0) {
+                    divLista.innerHTML = '<p style="text-align: center; color: #666;">Nenhuma massa cadastrada ainda.</p>';
+                    return;
+                }
+
+                divLista.innerHTML = ''; // Limpa a lista antes de mostrar
+
+                massas.forEach(massa => {
+                    divLista.innerHTML += `
+                        <div class="massa-item">
+                            <div>
+                                <strong>${massa.nome}</strong> - R$ ${massa.preco.toFixed(2)}
+                                ${massa.quantidade ? `<br><small>Estoque: ${massa.quantidade}</small>` : ''}
+                            </div>
+                            <button class="btn-apagar" onclick="apagarMassa('${massa._id}')">🗑️ Apagar</button>
+                        </div>
+                    `;
+                });
+            } catch (erro) {
+                console.error("Erro ao carregar:", erro);
+                document.getElementById('listaMassas').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar cardápio. Verifique a conexão.</p>';
+            }
         }
 
         // Função para salvar uma nova massa no banco de dados
@@ -56,15 +82,64 @@
                 return;
             }
 
-            await fetch('http://localhost:3000/api/produtos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: nome, preco: Number(preco) })
-            });
+            const btn = event.target;
+            const textoOriginal = btn.innerText;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
 
-            document.getElementById('nomeMassa').value = '';
-            document.getElementById('precoMassa').value = '';
-            carregarCardapio(); // Atualiza a lista na tela
+            try {
+                const resposta = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        nome: nome, 
+                        preco: Number(preco),
+                        quantidade: 0 
+                    })
+                });
+
+                if (!resposta.ok) {
+                    throw new Error(`Erro HTTP: ${resposta.status}`);
+                }
+
+                document.getElementById('nomeMassa').value = '';
+                document.getElementById('precoMassa').value = '';
+                await carregarCardapio();
+                alert("Massa cadastrada com sucesso!");
+                
+            } catch(erro) {
+                console.error("Erro ao salvar:", erro);
+                alert("Erro ao salvar: " + erro.message);
+            } finally {
+                btn.innerText = textoOriginal;
+                btn.disabled = false;
+            }
+        }
+
+        // Função para APAGAR uma massa (é isso que você precisava!)
+        async function apagarMassa(id) {
+            if(!confirm("⚠️ Tem certeza que deseja apagar esta massa permanentemente?")) {
+                return;
+            }
+            
+            try {
+                const resposta = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (resposta.ok) {
+                    alert("✅ Massa apagada com sucesso!");
+                    await carregarCardapio(); // Recarrega a lista
+                } else if (resposta.status === 404) {
+                    alert("❌ Massa não encontrada!");
+                } else {
+                    const erro = await resposta.text();
+                    alert(`❌ Erro ao apagar: ${resposta.status} - ${erro}`);
+                }
+            } catch(erro) {
+                console.error("Erro na requisição:", erro);
+                alert("❌ Erro de conexão com o servidor. Verifique sua internet.");
+            }
         }
 
         // Carrega o cardápio assim que a página abre
