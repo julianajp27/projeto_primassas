@@ -44,15 +44,12 @@ app.post('/api/produtos', async (req, res) => {
 app.delete('/api/produtos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
     console.log("📌 Recebi requisição DELETE para ID:", id);
     
-    // Verifica se o ID veio
     if (!id) {
       return res.status(400).json({ mensagem: "ID não fornecido" });
     }
     
-    // Tenta encontrar e deletar
     const produtoApagado = await Produto.findByIdAndDelete(id);
     
     if (!produtoApagado) {

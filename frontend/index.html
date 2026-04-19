@@ -11,7 +11,8 @@
         input, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
         button { background-color: #2e8b57; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #246b43; }
-        .massa-item { background: #fff3e0; margin: 10px 0; padding: 10px; border-left: 5px solid #ff8c00; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .massa-item { background: #fff3e0; margin: 10px 0; padding: 15px; border-left: 5px solid #ff8c00; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -21,10 +22,12 @@
         <h3>Cadastrar Nova Massa</h3>
         <input type="text" id="nomeMassa" placeholder="Nome da Massa (Ex: Nhoque ao Sugo)">
         <input type="number" id="precoMassa" placeholder="Preço (Ex: 45.90)">
-        <button onclick="salvarMassa()">Adicionar ao Cardápio</button>
+        <button id="btnSalvar" onclick="salvarMassa()">Adicionar ao Cardápio</button>
 
         <h3>Cardápio Atual</h3>
-        <div id="listaMassas"></div>
+        <div id="listaMassas">
+            <p style="text-align: center; color: #666;">Carregando cardápio...</p>
+        </div>
     </div>
 
     <script>
@@ -40,17 +43,17 @@
             if (!lista) return;
             
             if (produtos.length === 0) {
-                lista.innerHTML = '<p>Nenhum produto cadastrado</p>';
+                lista.innerHTML = '<p style="text-align:center;">Nenhum produto cadastrado</p>';
                 return;
             }
             
             lista.innerHTML = produtos.map(p => `
                 <div class="massa-item">
                     <div>
-                        <strong>${p.nome}</strong> - R$ ${p.preco}
+                        <strong>${p.nome}</strong> - R$ ${p.preco.toFixed(2)}
                         ${p.quantidade ? `<br><small>Estoque: ${p.quantidade}</small>` : ''}
                     </div>
-                    <button onclick="apagarProduto('${p._id}')" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                    <button onclick="apagarProduto('${p._id}')" style="background:#dc3545; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; width: auto;">
                         🗑️ Apagar
                     </button>
                 </div>
@@ -58,23 +61,24 @@
             
         } catch (error) {
             console.error("Erro:", error);
-            document.getElementById('listaMassas').innerHTML = '<p style="color:red;">Erro ao carregar</p>';
+            document.getElementById('listaMassas').innerHTML = '<p style="color:red; text-align:center;">Erro ao carregar do servidor</p>';
         }
     }
     
-    // Salvar produto
+    // Salvar produto com trava anti-duplicação
     async function salvarMassa() {
         const nome = document.getElementById('nomeMassa').value;
         const preco = document.getElementById('precoMassa').value;
+        const btn = document.getElementById('btnSalvar');
         
         if (!nome || !preco) {
             alert("Preencha nome e preço!");
             return;
         }
         
-        const btn = event.target;
+        // Trava o botão
         btn.disabled = true;
-        btn.textContent = "Salvando...";
+        btn.textContent = "Salvando (Aguarde)...";
         
         try {
             await fetch(API, {
@@ -86,17 +90,18 @@
             document.getElementById('nomeMassa').value = '';
             document.getElementById('precoMassa').value = '';
             await carregarProdutos();
-            alert("Produto cadastrado!");
+            alert("Produto cadastrado com sucesso!");
             
         } catch (error) {
-            alert("Erro ao salvar: " + error.message);
+            alert("Erro ao salvar: Verifique a conexão com o servidor.");
         } finally {
+            // Libera o botão novamente
             btn.disabled = false;
             btn.textContent = "Adicionar ao Cardápio";
         }
     }
     
-    // APAGAR produto (a função que você precisava!)
+    // Apagar produto de forma segura
     async function apagarProduto(id) {
         if (!confirm("⚠️ Tem certeza que deseja apagar este produto?")) {
             return;
@@ -108,20 +113,19 @@
             });
             
             if (resposta.ok) {
-                alert("✅ Produto apagado com sucesso!");
-                await carregarProdutos(); // Recarrega a lista
+                await carregarProdutos(); // Recarrega a lista sem dar alertas obstrutivos
             } else {
                 const erro = await resposta.json();
                 alert("❌ Erro: " + (erro.mensagem || "Não foi possível apagar"));
             }
         } catch (error) {
             console.error("Erro no DELETE:", error);
-            alert("❌ Erro de conexão: " + error.message);
+            alert("❌ Erro de conexão com o servidor.");
         }
     }
     
-    // Iniciar
+    // Iniciar a listagem ao abrir a página
     carregarProdutos();
-</script>
+    </script>
 </body>
 </html>
