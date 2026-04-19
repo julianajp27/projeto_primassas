@@ -49,29 +49,26 @@
             const res = await fetch(API);
             const dados = await res.json();
             const listaDiv = document.getElementById('lista');
-            listaDiv.innerHTML = '';
 
-            if (dados.length === 0) {
+            if (!dados.length) {
                 listaDiv.innerHTML = '<p style="text-align: center; color: #666;">Nenhum produto cadastrado.</p>';
                 return;
             }
 
-            dados.forEach(p => {
-                listaDiv.innerHTML += `
-                    <div class="item">
-                        <div class="info">
-                            <b>${p.nome}</b>
-                            <span>Estoque: ${p.quantidade || 0} | R$ ${p.preco.toFixed(2)}</span>
-                        </div>
-                        <div>
-                            <button class="btn-acao btn-add" onclick="somarEstoque('${p._id}')">+ Add</button>
-                            <button class="btn-acao btn-del" onclick="apagar('${p._id}')">🗑️</button>
-                        </div>
+            listaDiv.innerHTML = dados.map(p => `
+                <div class="item">
+                    <div class="info">
+                        <b>${p.nome}</b>
+                        <span>Estoque: ${p.quantidade || 0} | R$ ${p.preco.toFixed(2)}</span>
                     </div>
-                `;
-            });
+                    <div>
+                        <button class="btn-acao btn-add" data-id="${p._id}" data-action="add">+ Add</button>
+                        <button class="btn-acao btn-del" data-id="${p._id}" data-action="delete">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
         } catch (e) {
-            document.getElementById('lista').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar. O servidor pode estar iniciando, aguarde e atualize a página.</p>';
+            document.getElementById('lista').innerHTML = '<p style="text-align: center; color: red;">Erro ao carregar.</p>';
         }
     }
 
@@ -142,6 +139,16 @@
     }
 
     atualizar();
+
+    document.getElementById('lista').addEventListener('click', event => {
+        const btn = event.target.closest('button');
+        if (!btn) return;
+
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if (action === 'delete') apagar(id);
+        if (action === 'add') somarEstoque(id);
+    });
 </script>
 </body>
 </html>
