@@ -10,7 +10,7 @@ body {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
     
     /* Configuração exata para a sua imagem */
-    background-image: url('../../images/massas.jpg'); 
+    background-image: url('../images/massas.jpg'); 
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
